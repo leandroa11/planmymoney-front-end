@@ -1,0 +1,46 @@
+.App {
+  text-align: center;
+  padding: 5px;
+}
+
+.container {
+  padding: 20px;
+  max-width: 2200px;
+  margin: 0 auto;
+}
+
+h2, h3 {
+  color: #4CAF50;
+  margin-top: 20px;
+}
+
+.total-row {
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.datatable-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footerProcentaje{
+  display: flex;
+  justify-content: space-between;
+}
+
+.messageFooter{
+  margin-top: 15px;
+}
+.salario-info{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.invalidState{
+  color: #e24c4c;
+  margin-top: 3px;
+}
