@@ -16,7 +16,6 @@ import 'primereact/resources/themes/lara-light-indigo/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
 import ModalAgregarMes from './ModalAgregarMes';
-/* import { InputText } from 'primereact/inputtext'; */
 
 const Gastos = () => {
 
@@ -33,6 +32,9 @@ const Gastos = () => {
     const [modalVisible, setModalVisible] = useState();
     const [modalVisibleMes, setModalVisibleMes] = useState();
     const [actualizarSaldo, setActualizarSaldo] = useState(0);
+    const [actualizarDatos, setActualizarDatos] = useState(0);
+    const [newMonth, setNewMonth] = useState(false);
+    const [mesConsulta, setMesConsulta] = useState(false);
     const toast = useRef(null);
 
     addLocale('es', {
@@ -59,40 +61,38 @@ const Gastos = () => {
                 if (data.data.saldo_actual === 0) {
                     setModalVisible(true);
                 }
-                let datosFinancieros = data.data.datos_financieros;
-                const claves = Object.keys(datosFinancieros); 
-                const ultimaClave = claves[claves.length - 1];
-                const year = Object.keys(data.data.datos_financieros)[0];
-                const monthName = Object.keys(data.data.datos_financieros[year])[0];
 
-                const meses = {
+                const years = Object.keys(data.data.datos_financieros);
+                const latestYear = years.sort((a, b) => b - a)[0];
+                const months = Object.keys(data.data.datos_financieros[latestYear]);
+                const mesesIndices = {
                     enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
                     julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11
                 };
-
-                const fecha = new Date(year, meses[monthName], 1);
-                setMesSeleccionado(monthName);
-                setAñoSeleccionado(year);
+                const latestMonth = months.sort((a, b) => mesesIndices[b.toLowerCase()] - mesesIndices[a.toLowerCase()])[0];
+                const fecha = new Date(latestYear, mesesIndices[latestMonth.toLowerCase()], 1);
+                setMesSeleccionado(latestMonth);
+                setAñoSeleccionado(latestYear);
                 setCalendarMesSeleccionado(fecha);
                 let lastDay = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
                 setLastDate(lastDay);
                 setDatosFinancieros(data.data.datos_financieros);
                 setListaGastos(data.data.gastos_obligatorios);
-                if (data.data.datos_financieros[year][monthName]) {
-                    setGastos(data.data.datos_financieros[year][monthName]);
-                    setIngresos(data.data.datos_financieros[year][monthName]);
+
+                if (data.data.datos_financieros[latestYear][latestMonth.toLowerCase()]) {
+                    setGastos(data.data.datos_financieros[latestYear][latestMonth.toLowerCase()]);
+                    setIngresos(data.data.datos_financieros[latestYear][latestMonth.toLowerCase()]);
+                    setMesConsulta(data.data.datos_financieros[latestYear][latestMonth.toLowerCase()].mes_cerrado);
                 }
             } catch (error) {
                 console.log('Error durante la consulta:', error);
             }
         }
 
-
-
         if (usuario && usuario._id) {
             getUser();
         }
-    }, []);
+    }, [saldoActual, actualizarDatos]);
 
     useEffect(() => {
         const usuario = JSON.parse(sessionStorage.getItem("usuario"));
@@ -140,6 +140,26 @@ const Gastos = () => {
         }
 
     }, [datosFinancieros, updateData, añoSeleccionado, mesSeleccionado, actualizarSaldo, saldoActual]);
+
+    // useEffect actualiza los gastos e ingresos al cambiar el mes seleccionado
+    useEffect(() => {
+        if (!calendarMesSeleccionado || !datosFinancieros) return;
+
+        const fechaFormateada = convertirFecha(calendarMesSeleccionado);
+        const { nombreMes, año } = obtenerNombreMes(fechaFormateada);
+        const mesKey = nombreMes.toLowerCase();
+
+        if (newMonth === false) {
+            if (datosFinancieros[año] && datosFinancieros[año][mesKey]) {
+                setGastos(datosFinancieros[año][mesKey] || []);
+                setIngresos(datosFinancieros[año][mesKey] || []);
+                setMesConsulta(datosFinancieros[año][mesKey].mes_cerrado);
+            } else {
+                setGastos([]);
+                setIngresos([]);
+            }
+        }
+    }, [calendarMesSeleccionado, datosFinancieros, newMonth]);
 
     function updateSaldo(value, oldValue) {
         switch (true) {
@@ -268,33 +288,34 @@ const Gastos = () => {
         }
     };
 
-
-
     const renderRegistro = (tipo, registros) => {
-
         return registros.map((registro, index) => (
-            <div className="card flex flex-wrap gap-3 p-fluid" style={{ marginBottom: '10px' }}>
+            <div className="card flex flex-wrap" style={{ marginBottom: '10px' }}>
                 <div className="flex-auto">
                     <AutoComplete value={registro.concepto} field="concepto" suggestions={filteredGastos} completeMethod={search} dropdown onChange={(e) => {
                         selectedConcepto(tipo, index, 'concepto', e.target.value);
-                    }} placeholder="Concepto" />
+                    }} placeholder="Concepto" disabled={mesConsulta} />
                     {/* <InputText value={registro.concepto} onChange={(e) => actualizarDato(tipo, index, 'concepto', e.target.value)} placeholder="Concepto" /> */}
                 </div>
                 <div className="flex-auto">
                     <InputNumber value={registro.valor} onValueChange={(e) => actualizarDato(tipo, index, 'valor', parseInt(e.target.value) || 0)}
-                        className='' />
+                        className='' disabled={mesConsulta} />
                 </div>
                 <div className="flex-auto">
                     <Calendar value={registro.fecha ? convertirAFecha(registro.fecha) : registro.fecha} onChange={(e) => {
                         actualizarDato(tipo, index, 'fecha', convertirFecha(e.target.value))
-                    }} dateFormat="dd/mm/yy" placeholder="Fecha" minDate={calendarMesSeleccionado} maxDate={lastDay} readOnlyInput viewDate={calendarMesSeleccionado} />
+                    }} dateFormat="dd/mm/yy" placeholder="Fecha" minDate={calendarMesSeleccionado} maxDate={lastDay} readOnlyInput viewDate={calendarMesSeleccionado} disabled={mesConsulta} />
                 </div>
                 <div className="flex-auto">
-                    <Button
-                        icon="pi pi-trash"
-                        className="p-button-danger"
-                        onClick={() => eliminarFila(tipo, index)}
-                    />
+                    {mesConsulta ?
+                        null
+                        :
+                        <Button
+                            icon="pi pi-trash"
+                            className="p-button-danger"
+                            onClick={() => eliminarFila(tipo, index)}
+                        />
+                    }
                 </div>
             </div>
         ));
@@ -304,37 +325,50 @@ const Gastos = () => {
         return (
             <div className='datatable-header'>
                 <span>{tipo}s</span>
-                <Button label={`Agregar ${tipo}`} icon="pi pi-plus" onClick={() => {
-                    const month = obtenerNombreMes(convertirFecha(calendarMesSeleccionado)).nombreMes;
-                    const year = obtenerNombreMes(convertirFecha(calendarMesSeleccionado)).año;
+                {mesConsulta ?
+                    null
+                    :
+                    <Button label={`Agregar ${tipo}`} icon="pi pi-plus" onClick={() => {
+                        const month = obtenerNombreMes(convertirFecha(calendarMesSeleccionado)).nombreMes;
+                        const year = obtenerNombreMes(convertirFecha(calendarMesSeleccionado)).año;
 
-                    agregarFila(tipo, year, month);
-                }} />
+                        agregarFila(tipo, year, month);
+                    }} />
+                }
             </div>
         );
-
     }
+
     const renderFooter = (tipo) => {
         return (
             <div className="flex justify-content-end">
-                <Button label="Guardar" icon="pi pi-save" className="p-button-success" onClick={() => setUpdateData(true)} />
+                {mesConsulta ?
+                    null
+                    :
+                    <Button label="Guardar" icon="pi pi-save" className="p-button-success" onClick={() => setUpdateData(true)} />
+                }
             </div>
         );
     };
 
     const agregarMes = (value) => {
         setCalendarMesSeleccionado(value);
-        const { nombreMes, año } = obtenerNombreMes(convertirFecha(calendarMesSeleccionado));
+        const fechaFormateada = convertirFecha(value);
+        const { nombreMes, año } = obtenerNombreMes(fechaFormateada);
+        const mesKey = nombreMes.toLowerCase();
 
-        setModalVisibleMes(true);
-    }
+        if (!(datosFinancieros[año] && datosFinancieros[año][mesKey])) {
+            setModalVisibleMes(true);
+            setNewMonth(true);
+        } else {
+            setModalVisibleMes(false);
+        }
+    };
 
     return (
         <div className="App">
             <Menu />
             <Toast ref={toast} />
-
-
             <div className="container">
                 <h1>Gestión de Gastos e Ingresos</h1>
 
@@ -343,25 +377,33 @@ const Gastos = () => {
                 }} view="month" dateFormat="mm/yy" />
 
                 <ModalSalarioActual
-                    setVisiblePrep={modalVisible}
-                    setCalendarMesSeleccionado={setCalendarMesSeleccionado}
+                    setVisibleProp={modalVisible}
+                    setCalendarMesSeleccionadoProp={setCalendarMesSeleccionado}
+                    setSaldoActualProp={setSaldoActual}
                 />
                 <ModalAgregarMes
-                    setVisiblePrep={modalVisibleMes}
-                    calendarMesSeleccionadoPrep={calendarMesSeleccionado}
+                    setVisibleProp={modalVisibleMes}
+                    calendarMesSeleccionadoProp={calendarMesSeleccionado}
+                    datosFinancierosProp={datosFinancieros}
+                    setDatosFinancierosSelectionProp={setDatosFinancieros}
+                    actualizarDatosProp={actualizarDatos}
+                    setActualizarDatosProp={setActualizarDatos}
+                    setNewMonthProp={setNewMonth}
+                    saldoActualProp={saldoActual}
                 />
 
-                <h2>Saldo Actual: ${saldoActual}</h2>
+                <h2>Saldo Actual: ${saldoActual.toLocaleString('es-ES')}</h2>
+
                 <div style={{ padding: '1rem' }}>
-                    <div class="formgrid grid">
-                        <div class="field col">
+                    <div className="formgrid grid">
+                        <div className="field col-6">
                             <Card title={tittleCard("Gasto")} className="p-mb-6" style={{ marginTop: '10px' }} footer={renderFooter("Gasto")}>
                                 <ScrollPanel style={{ height: '400px' }}>
                                     {renderRegistro('Gasto', gastos["gastos"] || [])}
                                 </ScrollPanel>
                             </Card>
                         </div>
-                        <div class="field col">
+                        <div className="field col-6">
                             <Card title={tittleCard("Ingreso")} className="p-mb-6" style={{ marginTop: '10px' }} footer={renderFooter("Ingreso")}>
                                 <ScrollPanel style={{ height: '400px' }}>
                                     {renderRegistro('Ingreso', ingresos["ingresos"] || [])}

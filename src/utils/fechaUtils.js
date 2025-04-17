@@ -24,3 +24,17 @@ export const obtenerNombreMes = (fecha) => {
         año: año
     };
 };
+
+export const obtenerMesAnterior = (fechaStr) => {
+    const [dia, mes, anio] = fechaStr.split('/').map(Number);
+    const fecha = new Date(anio, mes - 1, dia);
+
+    // Restar un mes
+    fecha.setMonth(fecha.getMonth() - 1);
+
+    const diaAnterior = String(fecha.getDate()).padStart(2, '0');
+    const mesAnterior = String(fecha.getMonth() + 1).padStart(2, '0');
+    const anioAnterior = fecha.getFullYear();
+
+    return `${diaAnterior}/${mesAnterior}/${anioAnterior}`;
+};

@@ -8,8 +8,8 @@ import { convertirFecha, obtenerNombreMes } from '../../utils/fechaUtils';
 import { actualizarUsuario } from "../../services/updateUser";
 import { Toast } from "primereact/toast";
 
-export default function ModalSalarioActual({ setVisiblePrep, setCalendarMesSeleccionado }) {
-    const [visible, setVisible] = useState(setVisiblePrep);
+export default function ModalSalarioActual({ setVisibleProp, setCalendarMesSeleccionadoProp, setSaldoActualProp }) {
+    const [visible, setVisible] = useState(setVisibleProp);
     const [saldoActual, setSaldoActual] = useState(0);
     const [mesAnio, setMesAnio] = useState(null);
     const [saldoActualInvalid, setSaldoActualInvalid] = useState(false);
@@ -17,8 +17,8 @@ export default function ModalSalarioActual({ setVisiblePrep, setCalendarMesSelec
     const toast = useRef(null);
 
     useEffect(() => {
-        setVisible(setVisiblePrep);
-    }, [setVisiblePrep]);
+        setVisible(setVisibleProp);
+    }, [setVisibleProp]);
 
     const updateData = async () => {
 
@@ -35,7 +35,8 @@ export default function ModalSalarioActual({ setVisiblePrep, setCalendarMesSelec
                         [nombreMes.toLowerCase()]: {
                             gastos: [],
                             ingresos: [],
-                            saldo_actual_mes: saldoActual
+                            saldo_actual_mes: saldoActual,
+                            mes_cerrado: false,
                         }
                     }
                 };
@@ -52,6 +53,7 @@ export default function ModalSalarioActual({ setVisiblePrep, setCalendarMesSelec
                     setVisible(false);
                     setSaldoActualInvalid(false);
                     setMesAnioInvalid(false);
+                    setSaldoActualProp(saldoActual);
                 }
             } catch (error) {
                 toast.current.show({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la lista', life: 3000 });
@@ -85,7 +87,7 @@ export default function ModalSalarioActual({ setVisiblePrep, setCalendarMesSelec
                     <label htmlFor="mesAnio">Mes y Año</label>
                     <Calendar id="mesAnio" value={mesAnio} onChange={(e) => {
                         setMesAnio(e.value);
-                        setCalendarMesSeleccionado(e.value)
+                        setCalendarMesSeleccionadoProp(e.value)
                     }} view="month" dateFormat="mm/yy" showIcon placeholder="Selecciona el mes y año" invalid={mesAnioInvalid} />
                     {mesAnioInvalid ? <span className="invalidState">Debe Seleccionar una fecha</span> : ""}
                 </div>
