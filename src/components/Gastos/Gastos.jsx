@@ -34,7 +34,12 @@ const Gastos = () => {
     const [actualizarSaldo, setActualizarSaldo] = useState(0);
     const [actualizarDatos, setActualizarDatos] = useState(0);
     const [newMonth, setNewMonth] = useState(false);
+    // Estado para controlar si el mes está cerrado
     const [mesConsulta, setMesConsulta] = useState(false);
+    // estado para saldo mes cerrado
+    const [saldoMesCerrado, setSaldoMesCerrado] = useState(0);
+    // Estado para contorlar la fecha minima del calendario
+    const [minDate, setMinDate] = useState(null);
     const toast = useRef(null);
 
     addLocale('es', {
@@ -79,6 +84,14 @@ const Gastos = () => {
                 setDatosFinancieros(data.data.datos_financieros);
                 setListaGastos(data.data.gastos_obligatorios);
 
+                const años = Object.keys(data.data.datos_financieros);
+                const añoAntiguo = años.sort((a, b) => a - b)[0];
+                const meses = Object.keys(data.data.datos_financieros[Object.keys(data.data.datos_financieros)[0]]);
+                const mesAntiguo = meses.sort((a, b) => mesesIndices[a.toLowerCase()] - mesesIndices[b.toLowerCase()])[0];
+                // Crear la fecha mínima
+                const fechaMinima = new Date(añoAntiguo, mesesIndices[mesAntiguo.toLowerCase()], 1);
+                setMinDate(fechaMinima);
+
                 if (data.data.datos_financieros[latestYear][latestMonth.toLowerCase()]) {
                     setGastos(data.data.datos_financieros[latestYear][latestMonth.toLowerCase()]);
                     setIngresos(data.data.datos_financieros[latestYear][latestMonth.toLowerCase()]);
@@ -94,6 +107,7 @@ const Gastos = () => {
         }
     }, [saldoActual, actualizarDatos]);
 
+    // useEffect actualiza el saldo actual cuando se gestiona un gasto o ingreso
     useEffect(() => {
         const usuario = JSON.parse(sessionStorage.getItem("usuario"));
         async function updateUser() {
@@ -123,6 +137,8 @@ const Gastos = () => {
 
                 setSaldoActual(saldoActual - actualizarSaldo);
                 setActualizarSaldo(0);
+
+                console.log(actualizarSaldo);
 
                 const data = await actualizarUsuario(_id, updateData);
 
@@ -154,23 +170,13 @@ const Gastos = () => {
                 setGastos(datosFinancieros[año][mesKey] || []);
                 setIngresos(datosFinancieros[año][mesKey] || []);
                 setMesConsulta(datosFinancieros[año][mesKey].mes_cerrado);
+                setSaldoMesCerrado(datosFinancieros[año][mesKey].saldo_actual_mes);
             } else {
                 setGastos([]);
                 setIngresos([]);
             }
         }
     }, [calendarMesSeleccionado, datosFinancieros, newMonth]);
-
-    function updateSaldo(value, oldValue) {
-        switch (true) {
-            case value > oldValue:
-                return (value - oldValue);
-            case value < oldValue:
-                return (value - oldValue);
-            default:
-                return (value);
-        }
-    };
 
     const agregarFila = (tipo, año, mes) => {
         const nuevoRegistro = { concepto: '', valor: 0, fecha: '' };
@@ -206,6 +212,19 @@ const Gastos = () => {
         setUpdateData(true);
     };
 
+    function updateSaldo(value, oldValue) {
+        console.log(value, oldValue);
+
+        switch (true) {
+            case value > oldValue:
+                return (value - oldValue);
+            case value < oldValue:
+                return (value - oldValue);
+            default:
+                return (value);
+        }
+    };
+
     const actualizarDato = (tipo, index, field, value) => {
         if (tipo === 'Gasto') {
             const actualizados = [...(gastos['gastos'] || [])];
@@ -224,6 +243,7 @@ const Gastos = () => {
             }
             setIngresos(prev => ({ ...prev, ingresos: actualizados }));
         }
+        setUpdateData(true);
     };
 
     const eliminarFila = (tipo, index) => {
@@ -261,6 +281,7 @@ const Gastos = () => {
                 }
             }));
         }
+        setUpdateData(true);
     };
 
     const [filteredGastos, setFilteredGastos] = useState(null);
@@ -339,18 +360,6 @@ const Gastos = () => {
         );
     }
 
-    const renderFooter = (tipo) => {
-        return (
-            <div className="flex justify-content-end">
-                {mesConsulta ?
-                    null
-                    :
-                    <Button label="Guardar" icon="pi pi-save" className="p-button-success" onClick={() => setUpdateData(true)} />
-                }
-            </div>
-        );
-    };
-
     const agregarMes = (value) => {
         setCalendarMesSeleccionado(value);
         const fechaFormateada = convertirFecha(value);
@@ -374,7 +383,7 @@ const Gastos = () => {
 
                 <Calendar value={calendarMesSeleccionado} onChange={(e) => {
                     agregarMes(e.value);
-                }} view="month" dateFormat="mm/yy" />
+                }} view="month" dateFormat="mm/yy" minDate={minDate} />
 
                 <ModalSalarioActual
                     setVisibleProp={modalVisible}
@@ -392,19 +401,23 @@ const Gastos = () => {
                     saldoActualProp={saldoActual}
                 />
 
-                <h2>Saldo Actual: ${saldoActual.toLocaleString('es-ES')}</h2>
+                {mesConsulta ?
+                    <h2>Saldo final mes: ${saldoMesCerrado.toLocaleString('es-ES')}</h2>
+                    :
+                    <h2>Saldo Actual: ${saldoActual.toLocaleString('es-ES')}</h2>
+                }
 
                 <div style={{ padding: '1rem' }}>
                     <div className="formgrid grid">
                         <div className="field col-6">
-                            <Card title={tittleCard("Gasto")} className="p-mb-6" style={{ marginTop: '10px' }} footer={renderFooter("Gasto")}>
+                            <Card title={tittleCard("Gasto")} className="p-mb-6" style={{ marginTop: '10px' }}>
                                 <ScrollPanel style={{ height: '400px' }}>
                                     {renderRegistro('Gasto', gastos["gastos"] || [])}
                                 </ScrollPanel>
                             </Card>
                         </div>
                         <div className="field col-6">
-                            <Card title={tittleCard("Ingreso")} className="p-mb-6" style={{ marginTop: '10px' }} footer={renderFooter("Ingreso")}>
+                            <Card title={tittleCard("Ingreso")} className="p-mb-6" style={{ marginTop: '10px' }}>
                                 <ScrollPanel style={{ height: '400px' }}>
                                     {renderRegistro('Ingreso', ingresos["ingresos"] || [])}
                                 </ScrollPanel>

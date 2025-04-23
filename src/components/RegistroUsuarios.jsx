@@ -39,8 +39,6 @@ function RegisterUser() {
                 uso_salario: [],
                 datos_financieros: {},
             };
-            console.log(usuario);
-
 
             await axios.post(`${process.env.REACT_APP_API_URL}/usuarios/registrar`, usuario, {
                 headers: {

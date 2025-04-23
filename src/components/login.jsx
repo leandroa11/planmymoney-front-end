@@ -67,7 +67,7 @@ function Login() {
             <Toast ref={toast} />
             <div className="surface-card p-4 shadow-2 border-round w-full lg:w-4">
                 <div className="text-center mb-5">
-                    <img src="/demo/images/blocks/logos/hyper.svg" alt="hyper" height={50} className="mb-3" />
+                    <img src="/logoPlanMyMoney.png" alt="hyper" height={80} className="" />
                     <div className="text-900 text-3xl font-medium mb-3">Bienvenido</div>
                     <span className="text-600 font-medium line-height-3">¿No tienes una cuenta?</span>
                     <Link to="/RegistroUsuarios" style={{ textDecoration: 'none' }}>
