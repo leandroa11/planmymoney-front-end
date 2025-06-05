@@ -44,3 +44,26 @@ h2, h3 {
   color: #e24c4c;
   margin-top: 3px;
 }
+
+.diagonal-divider {
+    position: absolute;
+    right: 30%;
+    top: 0;
+    height: 100%;
+    width: 60px;
+    background: transparent;
+    z-index: 15;
+    pointer-events: none;
+}
+.diagonal-divider::before {
+    content: "";
+    display: block;
+    position: absolute;
+    left: 50%;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: linear-gradient(75deg, #6366f1 60%, #a78bfa 100%);
+    transform: skewY(-75deg);
+    border-radius: 2px;
+}
